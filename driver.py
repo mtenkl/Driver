@@ -8,7 +8,7 @@ class Car(pygame.sprite.Sprite):
 
     def __init__(self) -> None:
         super().__init__()
-        self.surf = pygame.image.load("porsche.png").convert_alpha()
+        self.surf = pygame.image.load("porsche.bmp").convert_alpha()
         self.rect = self.surf.get_rect()
         self.rect.center = (10, 100)
 
@@ -18,13 +18,13 @@ class Car(pygame.sprite.Sprite):
 
         self.acceleration_mss = 0
 
-        self.MAX_ACCELERATION_MSS = 2
-        self.BRAKING_ACCELERATION_MSS = -5
-        self.ENGINE_BRAKING_ACCELERATION_MSS = -0.8
+        self.MAX_ACCELERATION_MSS = 5
+        self.BRAKING_ACCELERATION_MSS = -9
+        self.ENGINE_BRAKING_ACCELERATION_MSS = -3
         self.HANDBRAKE_ACCELERATION_MSS = -4
 
         self.wheel_angle_deg = 0
-        self.MAX_WHEEL_ANGLE_DEG = 45
+        self.MAX_WHEEL_ANGLE_DEG = 60
 
         self.VEHICLE_LENGTH_M = 4.5
         
@@ -57,11 +57,15 @@ class Car(pygame.sprite.Sprite):
                 self.velocity_ms.x = 0
 
         if pressed_keys[pygame.K_LEFT]:
-            self.wheel_angle_deg += 30 * dt
+            self.wheel_angle_deg += 120 * dt
         elif pressed_keys[pygame.K_RIGHT]:  
-            self.wheel_angle_deg -= 30 * dt
+            self.wheel_angle_deg -= 120 * dt
         else:
-            self.wheel_angle_deg = 0
+            if self.wheel_angle_deg > 0:
+                self.wheel_angle_deg = max(0, self.wheel_angle_deg - 120 * dt)
+            else:
+                self.wheel_angle_deg = min(0, self.wheel_angle_deg + 120 * dt)
+
 
         self.wheel_angle_deg = max(-self.MAX_WHEEL_ANGLE_DEG, min(self.wheel_angle_deg, self.MAX_WHEEL_ANGLE_DEG))
 
@@ -81,6 +85,37 @@ class Car(pygame.sprite.Sprite):
 
         self.rotated = pygame.transform.rotate(self.surf, self.orientation_deg)
         self.rect = self.rotated.get_rect()
+        
+
+
+class CarHUD(pygame.sprite.Sprite):
+
+    def __init__(self) -> None:
+        super().__init__()
+
+        self.surf = pygame.Surface([20, 30], pygame.SRCALPHA)
+        self.surf.fill((255,0,0))
+
+        self.rect = self.surf.get_rect()
+        self.rect.center = (30, 30)
+
+    def update(self, angle):
+        self.rotated = pygame.transform.rotate(self.surf, angle)
+        self.rect = self.rotated.get_rect(center=(30,30))
+
+class TrajectoryPoint(pygame.sprite.Sprite):
+
+        def __init__(self, point) -> None:
+            super().__init__()
+
+            self.image = pygame.Surface([2, 2], pygame.SRCALPHA)
+            self.image.fill((0,200,0))
+
+            self.rect = self.image.get_rect()
+            self.rect.center = (point[0] * 30, point[1] * 30)
+
+     
+
 
 
 def main():
@@ -96,6 +131,9 @@ def main():
 
 
     player = Car()
+    hud = CarHUD()
+
+    traj = pygame.sprite.Group()
 
     while running:
 
@@ -112,11 +150,15 @@ def main():
         screen.fill((255, 255, 255))
 
         player.update(pressed_keys, dt)
+        hud.update(player.wheel_angle_deg)
+        traj.add(TrajectoryPoint(player.position))
+        traj.update()
 
         print("Speed: {} m/s Acc: {}, Wheel: {}, Orientation: {}".format(player.velocity_ms, player.acceleration_mss, player.wheel_angle_deg, player.orientation_deg))
 
+        traj.draw(screen)
         screen.blit(player.rotated, player.position * 30 - (player.rect.width /2, player.rect.height /2))
-
+        screen.blit(hud.rotated, hud.rect)
         
         pygame.display.update()
         
