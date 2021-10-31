@@ -1,6 +1,7 @@
 import pygame
 import math
 from pygame import Vector2
+import pygame.freetype
 
 
 
@@ -24,9 +25,9 @@ class Car(pygame.sprite.Sprite):
         self.HANDBRAKE_ACCELERATION_MSS = -4
 
         self.wheel_angle_deg = 0
-        self.MAX_WHEEL_ANGLE_DEG = 60
+        self.MAX_WHEEL_ANGLE_DEG = 45
 
-        self.VEHICLE_LENGTH_M = 4.5
+        self.VEHICLE_LENGTH_M = 4
         
        
 
@@ -86,22 +87,39 @@ class Car(pygame.sprite.Sprite):
         self.rotated = pygame.transform.rotate(self.surf, self.orientation_deg)
         self.rect = self.rotated.get_rect()
         
+class WheelGui(pygame.sprite.Sprite):
 
+        def __init__(self, position, steering=False) -> None:
+            super().__init__()
 
-class CarHUD(pygame.sprite.Sprite):
+            self.steering = steering
+            self.surf = pygame.Surface([10, 20], pygame.SRCALPHA)
+            pygame.draw.rect(self.surf,(255,0,0), pygame.Rect(0,0,10,20), 1)
+            self.image = self.surf
+            self.rect = self.surf.get_rect()
+            self.rect.center = position
+
+        def update(self, angle):
+            if self.steering:
+                self.rotated = pygame.transform.rotate(self.surf, angle)
+                self.rect = self.rotated.get_rect(center=(self.rect.center))
+                self.image = self.rotated
+
+class CarGui(pygame.sprite.Group):
 
     def __init__(self) -> None:
         super().__init__()
+        
+        self.add(WheelGui((50,50),steering=True))
+        self.add(WheelGui((100,50),steering=True))
+        self.add(WheelGui((50,170),steering=False))
+        self.add(WheelGui((100,170),steering=False))
 
-        self.surf = pygame.Surface([20, 30], pygame.SRCALPHA)
-        self.surf.fill((255,0,0))
 
-        self.rect = self.surf.get_rect()
-        self.rect.center = (30, 30)
+    def update(self, slip_angle):
+        for sprite in self.sprites():
+            sprite.update(slip_angle)
 
-    def update(self, angle):
-        self.rotated = pygame.transform.rotate(self.surf, angle)
-        self.rect = self.rotated.get_rect(center=(30,30))
 
 class TrajectoryPoint(pygame.sprite.Sprite):
 
@@ -122,7 +140,9 @@ def main():
 
     pygame.init()
     pygame.display.set_caption("Driver")
-
+    
+    
+    font = pygame.freetype.SysFont(pygame.freetype.get_default_font(), 10)
     clock = pygame.time.Clock()
 
     screen = pygame.display.set_mode((840, 680))
@@ -131,7 +151,7 @@ def main():
 
 
     player = Car()
-    hud = CarHUD()
+    hud = CarGui()
 
     traj = pygame.sprite.Group()
 
@@ -154,11 +174,17 @@ def main():
         traj.add(TrajectoryPoint(player.position))
         traj.update()
 
-        print("Speed: {} m/s Acc: {}, Wheel: {}, Orientation: {}".format(player.velocity_ms, player.acceleration_mss, player.wheel_angle_deg, player.orientation_deg))
+        gui_vehicle_speed, _ = font.render('Speed: {} km/h'.format(round(player.velocity_ms[0] * 3.6), (0, 0, 0)))
+        gui_vehicle_acc, _ = font.render('Acceleration: {} m/s2'.format(round(player.acceleration_mss), (0, 0, 0)))
+        gui_vehicle_slip_angle, _ = font.render('Slip angle: {}°'.format(round(player.wheel_angle_deg)), (0, 0, 0))
 
         traj.draw(screen)
+        hud.draw(screen)
         screen.blit(player.rotated, player.position * 30 - (player.rect.width /2, player.rect.height /2))
-        screen.blit(hud.rotated, hud.rect)
+       
+        screen.blit(gui_vehicle_speed, (700, 10))
+        screen.blit(gui_vehicle_acc, (700, 20))
+        screen.blit(gui_vehicle_slip_angle, (700, 30))
         
         pygame.display.update()
         
