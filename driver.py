@@ -2,88 +2,65 @@ import pygame
 import math
 from pygame import Vector2
 import pygame.freetype
-
+import vehicle as vm
+from vehicle import vehicledynamics
 
 
 class Car(pygame.sprite.Sprite):
 
     def __init__(self) -> None:
         super().__init__()
+
+        self.vehicle = vehicledynamics.VehicleDynamicModel3dof("mazda.ini")    
+        self.vehicle.ignition_on = True
+        self.vehicle.drive_mode = "P" 
+        self.vehicle.set_position(x=10, y=10, theta=0)
+
         self.surf = pygame.image.load("porsche.bmp").convert_alpha()
         self.rect = self.surf.get_rect()
         self.rect.center = (10, 100)
 
-        self.position = Vector2(10, 10)
-        self.orientation_deg = 0
-        self.velocity_ms = Vector2(0, 0)
+        self.position = Vector2(self.vehicle.x, self.vehicle.y)
+        self.orientation_deg = math.degrees(-self.vehicle.theta)
 
-        self.acceleration_mss = 0
-
-        self.MAX_ACCELERATION_MSS = 5
-        self.BRAKING_ACCELERATION_MSS = -9
-        self.ENGINE_BRAKING_ACCELERATION_MSS = -3
-        self.HANDBRAKE_ACCELERATION_MSS = -4
-
-        self.wheel_angle_deg = 0
-        self.MAX_WHEEL_ANGLE_DEG = 45
-
-        self.VEHICLE_LENGTH_M = 4
+        self.wheel_angle_deg = math.degrees(self.vehicle.wheel_angle)
         
        
 
     def update(self, pressed_keys, dt):
 
         if pressed_keys[pygame.K_UP]:
-            if self.velocity_ms.x >= 0:
-                self.acceleration_mss = self.MAX_ACCELERATION_MSS
-            else:
-                self.acceleration_mss = -self.BRAKING_ACCELERATION_MSS
-
+            self.vehicle.throttle_pedal = 50
+            self.vehicle.brake_pedal = 0
         elif pressed_keys[pygame.K_DOWN]:
-            if self.velocity_ms.x > 0:
-                self.acceleration_mss = self.BRAKING_ACCELERATION_MSS
-            else:
-                self.acceleration_mss = -self.MAX_ACCELERATION_MSS
-
-        elif pressed_keys[pygame.K_SPACE]:
-            self.acceleration_mss = -math.copysign(self.HANDBRAKE_ACCELERATION_MSS, self.velocity_ms.x)
+            self.vehicle.throttle_pedal = 0
+            self.vehicle.brake_pedal = 80
         else:
-            self.acceleration_mss = -math.copysign(self.ENGINE_BRAKING_ACCELERATION_MSS, self.velocity_ms.x)
-            if self.velocity_ms.x > 0.01:
-                self.acceleration_mss = self.ENGINE_BRAKING_ACCELERATION_MSS
-            elif self.velocity_ms.x < -0.01:
-                self.acceleration_mss = - self.ENGINE_BRAKING_ACCELERATION_MSS
-            else:
-                self.acceleration_mss = 0
-                self.velocity_ms.x = 0
+            self.vehicle.throttle_pedal = 0
+            self.vehicle.brake_pedal = 0
 
         if pressed_keys[pygame.K_LEFT]:
-            self.wheel_angle_deg += 120 * dt
+            steering_speed = -100/180* math.pi
         elif pressed_keys[pygame.K_RIGHT]:  
-            self.wheel_angle_deg -= 120 * dt
+            steering_speed = 100/180* math.pi
         else:
-            if self.wheel_angle_deg > 0:
-                self.wheel_angle_deg = max(0, self.wheel_angle_deg - 120 * dt)
-            else:
-                self.wheel_angle_deg = min(0, self.wheel_angle_deg + 120 * dt)
+            steering_speed = 0
 
+        if pressed_keys[pygame.K_p]:
+            self.vehicle.drive_mode = "P"
+        elif pressed_keys[pygame.K_r]:
+            self.vehicle.drive_mode = "R"
+        elif pressed_keys[pygame.K_n]:
+            self.vehicle.drive_mode = "N"
+        elif pressed_keys[pygame.K_d]:
+            self.vehicle.drive_mode = "D"
 
-        self.wheel_angle_deg = max(-self.MAX_WHEEL_ANGLE_DEG, min(self.wheel_angle_deg, self.MAX_WHEEL_ANGLE_DEG))
-
-
-        if self.wheel_angle_deg != 0:
-            turning_radius = self.VEHICLE_LENGTH_M / math.sin(math.radians(self.wheel_angle_deg))
-            angular_velocity = self.velocity_ms.x / turning_radius
-        else:
-            angular_velocity = 0
-
-        self.velocity_ms += (self.acceleration_mss * dt, 0)
-
-
-        self.position += self.velocity_ms.rotate(-self.orientation_deg) * dt
-
-        self.orientation_deg += math.degrees(angular_velocity) * dt
-
+        self.vehicle.update(dt)
+        x, y, theta = self.vehicle.steering(self.vehicle.vehicle_speed_mps, steering_speed, dt)
+        self.position = Vector2(x, y)
+        self.orientation_deg = math.degrees(-theta)
+        self.wheel_angle_deg = math.degrees(self.vehicle.wheel_angle)
+        
         self.rotated = pygame.transform.rotate(self.surf, self.orientation_deg)
         self.rect = self.rotated.get_rect()
         
@@ -101,7 +78,7 @@ class WheelGui(pygame.sprite.Sprite):
 
         def update(self, angle):
             if self.steering:
-                self.rotated = pygame.transform.rotate(self.surf, angle)
+                self.rotated = pygame.transform.rotate(self.surf, -angle)
                 self.rect = self.rotated.get_rect(center=(self.rect.center))
                 self.image = self.rotated
 
@@ -144,8 +121,12 @@ def main():
     
     font = pygame.freetype.SysFont(pygame.freetype.get_default_font(), 10)
     clock = pygame.time.Clock()
+    WIDTH = 840
+    HEIGHT = 680
 
-    screen = pygame.display.set_mode((840, 680))
+    screen = pygame.display.set_mode((WIDTH, HEIGHT))
+    background = pygame.image.load("road2.png").convert()
+    background = pygame.transform.scale(background,(WIDTH, HEIGHT))
 
     running = True
 
@@ -168,14 +149,15 @@ def main():
         pressed_keys = pygame.key.get_pressed()
         
         screen.fill((255, 255, 255))
+        screen.blit(background, (0, 0))
 
         player.update(pressed_keys, dt)
         hud.update(player.wheel_angle_deg)
         traj.add(TrajectoryPoint(player.position))
         traj.update()
 
-        gui_vehicle_speed, _ = font.render('Speed: {} km/h'.format(round(player.velocity_ms[0] * 3.6), (0, 0, 0)))
-        gui_vehicle_acc, _ = font.render('Acceleration: {} m/s2'.format(round(player.acceleration_mss), (0, 0, 0)))
+        gui_vehicle_speed, _ = font.render('Speed: {} km/h'.format(round(player.vehicle.vehicle_speed_kmph), (0, 0, 0)))
+        gui_vehicle_acc, _ = font.render('Acceleration: {} m/s2'.format(round(player.vehicle.acceleration_mps2), (0, 0, 0)))
         gui_vehicle_slip_angle, _ = font.render('Slip angle: {}°'.format(round(player.wheel_angle_deg)), (0, 0, 0))
 
         traj.draw(screen)
