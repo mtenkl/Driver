@@ -4,6 +4,7 @@ from pygame import Vector2
 import pygame.freetype
 import vehicle as vm
 from vehicle import vehicledynamics
+import gui
 
 
 class Car(pygame.sprite.Sprite):
@@ -133,7 +134,7 @@ def main():
 
     player = Car()
     hud = CarGui()
-
+    shifter = gui.ShifterGui()
     traj = pygame.sprite.Group()
 
     while running:
@@ -155,6 +156,7 @@ def main():
         hud.update(player.wheel_angle_deg)
         traj.add(TrajectoryPoint(player.position))
         traj.update()
+        shifter.update(player.vehicle.drive_mode, player.vehicle.gear)
 
         gui_vehicle_speed, _ = font.render('Speed: {} km/h'.format(round(player.vehicle.vehicle_speed_kmph), (0, 0, 0)))
         gui_vehicle_acc, _ = font.render('Acceleration: {} m/s2'.format(round(player.vehicle.acceleration_mps2), (0, 0, 0)))
@@ -162,6 +164,7 @@ def main():
 
         traj.draw(screen)
         hud.draw(screen)
+        screen.blit(shifter.image, (10,530))
         screen.blit(player.rotated, player.position * 30 - (player.rect.width /2, player.rect.height /2))
        
         screen.blit(gui_vehicle_speed, (700, 10))
