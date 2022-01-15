@@ -2,9 +2,13 @@ import pygame
 import math
 from pygame import Vector2
 import pygame.freetype
+from pygame.sndarray import array
 import vehicle as vm
 from vehicle import vehicledynamics
 import gui
+import numpy as np
+import csv
+
 
 
 class Car(pygame.sprite.Sprite):
@@ -116,6 +120,55 @@ class TrajectoryPoint(pygame.sprite.Sprite):
             self.rect.center = (point[0], point[1])
 
      
+class Background():
+
+    def __init__(self) -> None:
+
+        self._TILE_SIZE = 256
+        self._roadEW = pygame.image.load("images/roadEW.tga")
+        self._roadNE = pygame.image.load("images/roadNE.tga")
+        self._roadNEWS = pygame.image.load("images/roadNEWS.tga")
+        self._roadNS = pygame.image.load("images/roadNS.tga")
+        self._roadNW = pygame.image.load("images/roadNW.tga")
+        self._roadPLAZA = pygame.image.load("images/roadPLAZA.tga")
+        self._roadSE = pygame.image.load("images/roadSE.tga")
+        self._roadSW = pygame.image.load("images/roadSW.tga")
+
+        self.MAP = list()
+
+        with open("images/map.csv") as csv_file:
+            reader = csv.reader(csv_file, delimiter=",")
+            for row in reader:
+                tile_row = list()
+                for cell in row:
+                    t = cell.lower()
+                    if t == "plaza":
+                        tile_row.append(self._roadPLAZA)
+                    elif t == "ew":
+                        tile_row.append(self._roadEW)
+                    elif t == "ne":
+                        tile_row.append(self._roadNE)
+                    elif t == "news":
+                        tile_row.append(self._roadNEWS)
+                    elif t == "ns":
+                        tile_row.append(self._roadNS)
+                    elif t == "nw":
+                        tile_row.append(self._roadNW)
+                    elif t == "se":
+                        tile_row.append(self._roadSE)
+                    elif t == "sw":
+                        tile_row.append(self._roadSW)
+                    else:
+                        raise ValueError(f"Invalid tile name {cell}.")
+
+                self.MAP.append(tile_row)
+
+    def render(self, screen):
+
+        for y, row in enumerate(self.MAP): 
+            for x, cell in enumerate(row):
+                location = (x * self._TILE_SIZE, y * self._TILE_SIZE)
+                screen.blit(cell, location)
 
 
 
@@ -135,6 +188,8 @@ def main():
     screen = pygame.display.set_mode((WIDTH, HEIGHT))
     background = pygame.image.load("road2.png").convert()
     background = pygame.transform.scale(background,(WIDTH, HEIGHT))
+    background = Background()
+    background.render(screen)
 
     running = True
 
@@ -159,7 +214,7 @@ def main():
         pressed_keys = pygame.key.get_pressed()
         
         screen.fill((255, 255, 255))
-        screen.blit(background, (0, 0))
+        background.render(screen)
 
         player.update(pressed_keys, dt)
         hud.update(player.wheel_angle_deg)
