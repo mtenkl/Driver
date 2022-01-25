@@ -17,6 +17,11 @@ class MapGenerator():
         self._roadPLAZA = pygame.image.load("images/roadPLAZA.tga")
         self._roadSE = pygame.image.load("images/roadSE.tga")
         self._roadSW = pygame.image.load("images/roadSW.tga")
+        self._roadNES = pygame.image.load("images/roadNES.tga")
+        self._roadWES = pygame.image.load("images/roadWES.tga")
+        self._roadWNE = pygame.image.load("images/roadWNE.tga")
+        self._roadWNS = pygame.image.load("images/roadWNS.tga")
+        self._roadEND = pygame.image.load("images/roadEND.tga")
 
         self._x_offset = 0
         self._y_offset = 0
@@ -53,8 +58,24 @@ class MapGenerator():
             # SW
             elif self._world_padded[row, col-1] == 1 and self._world_padded[row, col+1] == 0 and self._world_padded[row-1, col] == 0 and self._world_padded[row+1, col] == 1:
                 return self._roadSW
+            # WNS
+            elif self._world_padded[row, col-1] == 1 and self._world_padded[row, col+1] == 0 and self._world_padded[row-1, col] == 1 and self._world_padded[row+1, col] == 1:
+                return self._roadWNS
+            # NES
+            elif self._world_padded[row, col-1] == 0 and self._world_padded[row, col+1] == 1 and self._world_padded[row-1, col] == 1 and self._world_padded[row+1, col] == 1:
+                return self._roadNES
+            # WES
+            elif self._world_padded[row, col-1] == 1 and self._world_padded[row, col+1] == 1 and self._world_padded[row-1, col] == 0 and self._world_padded[row+1, col] == 1:
+                return self._roadWES
+            # WNE
+            elif self._world_padded[row, col-1] == 1 and self._world_padded[row, col+1] == 1 and self._world_padded[row-1, col] == 1 and self._world_padded[row+1, col] == 0:
+                return self._roadWNE
+            # END
+            elif self._world_padded[row, col-1] == 0 and self._world_padded[row, col+1] == 0 and self._world_padded[row-1, col] == 0 and self._world_padded[row+1, col] == 0:
+                return self._roadEND
             else:
-                return self._roadNEWS
+                return self._roadEND
+            
         else:
             raise ValueError(f"Invalid map tile id `{self._world_padded[row, col]}`.")
 

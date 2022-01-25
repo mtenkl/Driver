@@ -26,7 +26,7 @@ class TestMapGenerator(unittest.TestCase):
                                      [0,1,0],
                                      [0,0,0]])
         texture = mg._get_tile(0, 0)
-        self.assertIs(texture, mg._roadNEWS, "NEWS")
+        self.assertIs(texture, mg._roadEND, "END")
 
         mg._world_padded = np.array([[0,1,0],
                                      [1,1,1],
@@ -70,11 +70,30 @@ class TestMapGenerator(unittest.TestCase):
         texture = mg._get_tile(0, 0)
         self.assertIs(texture, mg._roadSE, "SE")
 
+        mg._world_padded = np.array([[0,0,0],
+                                     [1,1,1],
+                                     [0,1,0]])
+        texture = mg._get_tile(0, 0)
+        self.assertIs(texture, mg._roadWES, "WES")
+
+        mg._world_padded = np.array([[0,1,0],
+                                     [1,1,1],
+                                     [0,0,0]])
+        texture = mg._get_tile(0, 0)
+        self.assertIs(texture, mg._roadWNE, "WNE")
+
         mg._world_padded = np.array([[0,1,0],
                                      [0,1,1],
                                      [0,1,0]])
         texture = mg._get_tile(0, 0)
-        self.assertIs(texture, mg._roadNEWS, "ALL")
+        self.assertIs(texture, mg._roadNES, "NES")
+
+        mg._world_padded = np.array([[0,1,0],
+                                     [1,1,0],
+                                     [0,1,0]])
+        texture = mg._get_tile(0, 0)
+        self.assertIs(texture, mg._roadWNS, "WNS")
+
 
 
     def test_display_map(self):
