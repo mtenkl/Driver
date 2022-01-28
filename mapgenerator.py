@@ -90,3 +90,8 @@ class MapGenerator():
     def update(self, offset):
 
         self._x_offset, self._y_offset = offset
+
+    @property
+    def shape(self):
+        height, width = self._world.shape
+        return (height * self._TILE_SIZE, width * self._TILE_SIZE)

@@ -132,3 +132,7 @@ class TestMapGenerator(unittest.TestCase):
             pygame.display.update()
 
 
+    def test_map_size(self):
+        mg = mapgenerator.MapGenerator("tests/world-map-test.csv")
+        shape = mg.shape
+        self.assertEqual(shape, (2816,4352))
