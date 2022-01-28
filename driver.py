@@ -1,14 +1,15 @@
+import imp
 import pygame
 import math
 from pygame import Vector2
 import pygame.freetype
 from pygame.sndarray import array
+import pygame_gui
 import vehicle as vm
 from vehicle import vehicledynamics
 import gui
 import numpy as np
-import csv
-
+import mapgenerator
 
 
 class Car(pygame.sprite.Sprite):
@@ -120,92 +121,33 @@ class TrajectoryPoint(pygame.sprite.Sprite):
         
 
 
-class Background():
-
-    def __init__(self) -> None:
-
-        self._TILE_SIZE = 256
-        self._roadEW = pygame.image.load("images/roadEW.tga")
-        self._roadNE = pygame.image.load("images/roadNE.tga")
-        self._roadNEWS = pygame.image.load("images/roadNEWS.tga")
-        self._roadNS = pygame.image.load("images/roadNS.tga")
-        self._roadNW = pygame.image.load("images/roadNW.tga")
-        self._roadPLAZA = pygame.image.load("images/roadPLAZA.tga")
-        self._roadSE = pygame.image.load("images/roadSE.tga")
-        self._roadSW = pygame.image.load("images/roadSW.tga")
-
-        self.MAP = list()
-        self.x_offset = 0
-        self.y_offset = 0
-
-        with open("images/map.csv") as csv_file:
-            reader = csv.reader(csv_file, delimiter=",")
-            for row in reader:
-                tile_row = list()
-                for cell in row:
-                    t = cell.lower()
-                    if t == "plaza":
-                        tile_row.append(self._roadPLAZA)
-                    elif t == "ew":
-                        tile_row.append(self._roadEW)
-                    elif t == "ne":
-                        tile_row.append(self._roadNE)
-                    elif t == "news":
-                        tile_row.append(self._roadNEWS)
-                    elif t == "ns":
-                        tile_row.append(self._roadNS)
-                    elif t == "nw":
-                        tile_row.append(self._roadNW)
-                    elif t == "se":
-                        tile_row.append(self._roadSE)
-                    elif t == "sw":
-                        tile_row.append(self._roadSW)
-                    else:
-                        raise ValueError(f"Invalid tile name {cell}.")
-
-                self.MAP.append(tile_row)
-
-    def render(self, screen):
-
-        for y, row in enumerate(self.MAP): 
-            for x, cell in enumerate(row):
-                location = (x * self._TILE_SIZE + self.x_offset, y * self._TILE_SIZE + self.y_offset)
-                screen.blit(cell, location)
-
-    def update(self, position):
-
-        self.x_offset = position[0]
-        self.y_offset = position[1]
-
-
 def main():
 
     pygame.init()
     pygame.display.set_caption("Driver")
-    
+
     
     font = pygame.freetype.SysFont(pygame.freetype.get_default_font(), 14)
     clock = pygame.time.Clock()
     WIDTH = 840
     HEIGHT = 680
     SCALE = 30
-    BOUNDARY = 100
+
+    manager = pygame_gui.UIManager((WIDTH, HEIGHT))
 
     screen = pygame.display.set_mode((WIDTH, HEIGHT))
-    background = pygame.image.load("road2.png").convert()
-    background = pygame.transform.scale(background,(WIDTH, HEIGHT))
-    background = Background()
+    
+    background = mapgenerator.MapGenerator("world-map.csv")
     background.render(screen)
 
     running = True
 
-    display_offset_x = 0
-    display_offset_y = 0
 
     player = Car((WIDTH/2, HEIGHT/2))
     hud = CarGui()
-    shifter = gui.ShifterGui()
     traj = pygame.sprite.Group()
+
+    drive_program_selector = pygame_gui.elements.UISelectionList(relative_rect=pygame.Rect((10, HEIGHT - 100), (30, 86)), item_list=["P", "R","N","D"], manager=manager)
 
     while running:
 
@@ -217,7 +159,16 @@ def main():
                 # change the value to False, to exit the main loop
                 running = False
 
+            if event.type == pygame_gui.UI_SELECTION_LIST_NEW_SELECTION:
+                if event.ui_element == drive_program_selector:
+                    player.vehicle.drive_mode = event.text
+
+            manager.process_events(event)
+
+
         pressed_keys = pygame.key.get_pressed()
+        manager.update(dt)
+
         
         screen.fill((255, 255, 255))
         background.render(screen)
@@ -227,7 +178,6 @@ def main():
         hud.update(player.wheel_angle_deg)
         traj.add(TrajectoryPoint((player.vehicle.x, player.vehicle.y)))
         traj.update()
-        shifter.update(player.vehicle.drive_mode, player.vehicle.gear)
 
         text_color = (250,0,100)
         gui_vehicle_speed, _ = font.render('Speed: {} km/h'.format(round(player.vehicle.vehicle_speed_kmph)), text_color)
@@ -237,13 +187,7 @@ def main():
 
         traj.draw(screen)
         hud.draw(screen)
-        screen.blit(shifter.image, (10,530))
-        """
-        if player.position.x * SCALE > WIDTH - BOUNDARY:
-            player.position.x = (WIDTH- BOUNDARY) / SCALE
-        if player.position.y * SCALE > HEIGHT - BOUNDARY:
-            player.position.y = (HEIGHT- BOUNDARY) / SCALE
-        """
+
         screen.blit(player.image, player.rect)
         pygame.draw.circle(screen, (0,100,255), player.rect.center, 2)
         pygame.draw.circle(screen, (0,255,255), player.axis_center, 2)
@@ -254,6 +198,8 @@ def main():
         screen.blit(gui_vehicle_slip_angle, (700, 45))
         screen.blit(gui_vehicle_position, (700, 60))
         
+        manager.draw_ui(screen)
+
         pygame.display.update()
         
 
