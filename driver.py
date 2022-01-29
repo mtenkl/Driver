@@ -1,4 +1,5 @@
 import imp
+from lib2to3.pgen2.driver import Driver
 import pygame
 import math
 from pygame import Rect, Vector2
@@ -10,6 +11,7 @@ from vehicle import vehicledynamics
 import gui
 import numpy as np
 import mapgenerator
+from pid import PID
 
 
 class Car(pygame.sprite.Sprite):
@@ -32,24 +34,26 @@ class Car(pygame.sprite.Sprite):
         self.wheel_angle_deg = math.degrees(self.vehicle.wheel_angle)
         self.VEHICLE_CENTER_OFFSET = Vector2(1.3, 0)
 
+        self.pid = PID(10, 10, 0, math.radians(-100), math.radians(100))
+
     def update(self, pressed_keys, dt):
 
         if pressed_keys[pygame.K_UP]:
-            self.vehicle.throttle_pedal = 50
+            self.vehicle.throttle_pedal = 80
             self.vehicle.brake_pedal = 0
         elif pressed_keys[pygame.K_DOWN]:
             self.vehicle.throttle_pedal = 0
-            self.vehicle.brake_pedal = 80
+            self.vehicle.brake_pedal = 90
         else:
             self.vehicle.throttle_pedal = 0
             self.vehicle.brake_pedal = 0
 
         if pressed_keys[pygame.K_LEFT]:
-            steering_speed = -100/180 * math.pi
+            steering_speed = math.radians(-80)
         elif pressed_keys[pygame.K_RIGHT]:
-            steering_speed = 100/180 * math.pi
+            steering_speed = math.radians(80)
         else:
-            steering_speed = 0
+            steering_speed = self.pid.output(self.vehicle.wheel_angle, 0, dt)
 
         if pressed_keys[pygame.K_p]:
             self.vehicle.drive_mode = "P"
