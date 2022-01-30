@@ -4,7 +4,7 @@ import math
 
 
 
-class Position():
+class Node():
 
     def __init__(self, x:int, y:int, theta:float=None) -> None:
         self._x = x
@@ -37,30 +37,42 @@ class Trajectory(object):
         self.MAX_LEN = max_len
         self.MIN_DIST = min_dist
 
-        self.buffer = collections.deque(maxlen=self.MAX_LEN)
+        self._buffer = collections.deque(maxlen=self.MAX_LEN)
         self._last = None
 
-    def add(self, position: Position):
+    def add(self, position: Node):
         """
         Add new position to buffer.
         @position: Dictionary containing x, y, theta
         """
         
-        if len(self.buffer) > 0:
+        if len(self._buffer) > 0:
             if self.MIN_DIST is not None:
                 if self._last.distance(position) >= self.MIN_DIST:
                     self._last = position
-                    self.buffer.append(position)
+                    self._buffer.append(position)
             else:
-                self.buffer.append(position)
+                self._buffer.append(position)
         else:
-            self.buffer.append(position)
+            self._buffer.append(position)
             self._last = position
 
 
     def pop(self):
-        return self.buffer.pop()
+        return self._buffer.pop()
 
     def __len__(self):
-        return len(self.buffer)
+        return len(self._buffer)
 
+    def __iter__(self):
+        self._n = 0
+        return self
+
+    def __next__(self) -> Node:
+
+        if self._n < len(self._buffer):
+            result = self._buffer[self._n]
+            self._n += 1
+            return result
+        else:
+            raise StopIteration

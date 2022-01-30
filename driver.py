@@ -1,12 +1,9 @@
 import imp
-from lib2to3.pgen2.driver import Driver
 import pygame
 import math
 from pygame import Rect, Vector2
 import pygame.freetype
-from pygame.sndarray import array
 import pygame_gui
-import vehicle as vm
 from vehicle import vehicledynamics
 import gui
 import numpy as np
