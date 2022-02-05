@@ -75,20 +75,24 @@ class MapGenerator():
                 return self._roadEND
             else:
                 return self._roadEND
-            
+
         else:
-            raise ValueError(f"Invalid map tile id `{self._world_padded[row, col]}`.")
+            raise ValueError(
+                f"Invalid map tile id `{self._world_padded[row, col]}`.")
 
-    def render(self, screen):
+    def render(self, screen: pygame.Surface):
 
-        for index, tile_id in np.ndenumerate(self._world): 
+        for index, tile_id in np.ndenumerate(self._world):
             row, col = index
             tile = self._get_tile(row, col)
-            position = (col * self._TILE_SIZE + self._x_offset, row * self._TILE_SIZE + self._y_offset)
+            position = (col * self._TILE_SIZE + self._x_offset,
+                        row * self._TILE_SIZE + self._y_offset)
             screen.blit(tile, position)
 
-    def update(self, offset):
-
+    def set_offset(self, offset: tuple[int, int]) -> None:
+        """
+        @offset: background offset in pixels (x,y)
+        """
         self._x_offset, self._y_offset = offset
 
     @property

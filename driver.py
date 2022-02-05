@@ -1,4 +1,3 @@
-import imp
 import pygame
 import math
 from pygame import Rect, Vector2
@@ -9,6 +8,8 @@ import gui
 import numpy as np
 import mapgenerator
 from pid import PID
+from trajectory import Trajectory
+from trajectory import Node
 
 
 class Car(pygame.sprite.Sprite):
@@ -74,73 +75,22 @@ class Car(pygame.sprite.Sprite):
         self.axis_center = self.rect.center - rotated_offset
 
 
-class WheelGui(pygame.sprite.Sprite):
-
-    def __init__(self, position, steering=False) -> None:
-        super().__init__()
-
-        self.steering = steering
-        self.surf = pygame.Surface([10, 20], pygame.SRCALPHA)
-        pygame.draw.rect(self.surf, (255, 0, 0), pygame.Rect(0, 0, 10, 20), 1)
-        self.image = self.surf
-        self.rect = self.surf.get_rect()
-        self.rect.center = position
-
-    def update(self, angle):
-        if self.steering:
-            self.rotated = pygame.transform.rotate(self.surf, -angle)
-            self.rect = self.rotated.get_rect(center=(self.rect.center))
-            self.image = self.rotated
-
-
-class CarGui(pygame.sprite.Group):
-
-    def __init__(self) -> None:
-        super().__init__()
-
-        self.add(WheelGui((50, 50), steering=True))
-        self.add(WheelGui((100, 50), steering=True))
-        self.add(WheelGui((50, 170), steering=False))
-        self.add(WheelGui((100, 170), steering=False))
-
-    def update(self, slip_angle):
-        for sprite in self.sprites():
-            sprite.update(slip_angle)
-
-
-class TrajectoryPoint(pygame.sprite.Sprite):
-
-    def __init__(self, point) -> None:
-        super().__init__()
-
-        self.image = pygame.Surface([2, 2], pygame.SRCALPHA)
-        self.image.fill((0, 200, 0))
-
-        self.rect = self.image.get_rect()
-        self.rect.center = (point[0], point[1])
-
-
 def main():
 
     pygame.init()
     pygame.display.set_caption("Driver")
 
-    font = pygame.freetype.SysFont(pygame.freetype.get_default_font(), 14)
     clock = pygame.time.Clock()
     WIDTH = 840
     HEIGHT = 680
     SCALE = 30
 
     manager = pygame_gui.UIManager((WIDTH, HEIGHT))
-
     screen = pygame.display.set_mode((WIDTH, HEIGHT))
-
     background = mapgenerator.MapGenerator("world-map.csv")
     background.render(screen)
-
     player = Car((WIDTH/2, HEIGHT/2))
-    hud = CarGui()
-    traj = pygame.sprite.Group()
+    trajectory = Trajectory(300, 0.1)
 
     drive_program_selector = pygame_gui.elements.UISelectionList(relative_rect=pygame.Rect(
         (10, HEIGHT - 100), (30, 86)), item_list=["P", "R", "N", "D"], manager=manager)
@@ -175,14 +125,13 @@ def main():
         manager.update(dt)
 
         screen.fill((255, 255, 255))
-        background.render(screen)
 
         player.update(pressed_keys, dt)
-        background.update(
+        trajectory.add(
+            Node(player.vehicle.x, player.vehicle.y, player.vehicle.theta))
+        background.set_offset(
             (-player.vehicle.x * SCALE, -player.vehicle.y * SCALE))
-        hud.update(player.wheel_angle_deg)
-        traj.add(TrajectoryPoint((player.vehicle.x, player.vehicle.y)))
-        traj.update()
+        background.render(screen)
 
         vehicle_speed_label.set_text(
             f"Speed: {str(round(player.vehicle.vehicle_speed_kmph)).rjust(3)} km/h")
@@ -192,15 +141,13 @@ def main():
             f"Position: [{round(player.vehicle.x)}, {round(player.vehicle.y)}] m")
         vehicle_steering_progress_bar.set_value(player.wheel_angle_deg)
 
-        traj.draw(screen)
-        hud.draw(screen)
+        trajectory.draw(screen, SCALE, -player.vehicle.x * SCALE + WIDTH/2, SCALE, -player.vehicle.y * SCALE + HEIGHT/2)
 
         screen.blit(player.image, player.rect)
-        pygame.draw.circle(screen, (0, 100, 255), player.rect.center, 2)
-        pygame.draw.circle(screen, (0, 255, 255), player.axis_center, 2)
+        pygame.draw.circle(screen, (0, 100, 255), player.rect.center, 3)
+        pygame.draw.circle(screen, (0, 255, 255), player.axis_center, 1)
 
         manager.draw_ui(screen)
-
         pygame.display.update()
 
 

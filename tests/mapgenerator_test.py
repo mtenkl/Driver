@@ -127,7 +127,7 @@ class TestMapGenerator(unittest.TestCase):
             if pressed_keys[pygame.K_RIGHT]:  
                 offset = offset + pygame.Vector2(-10,0)
                 
-            mg.update(offset)
+            mg.set_offset(offset)
             mg.render(screen)
             pygame.display.update()
 

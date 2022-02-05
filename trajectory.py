@@ -1,6 +1,9 @@
 import collections
 import numpy as np
 import math
+from colorsys import hsv_to_rgb
+
+import pygame
 
 
 
@@ -23,6 +26,10 @@ class Node():
     def theta(self):
         return self._theta
 
+    @property
+    def pos(self):
+        return (self.x, self.y)
+
     def distance(self, position):
 
         return math.hypot(self._x - position.x, self._y - position.y)
@@ -33,7 +40,10 @@ class Node():
 class Trajectory(object):
 
     def __init__(self, max_len:int, min_dist:float = None) -> None:
-        
+        """
+        @max_len: maximum number of trajectory nodes
+        @min_dist: minimum distance between trajectory nodes
+        """
         self.MAX_LEN = max_len
         self.MIN_DIST = min_dist
 
@@ -56,6 +66,15 @@ class Trajectory(object):
         else:
             self._buffer.append(position)
             self._last = position
+
+    def draw(self, screen: pygame.Surface, scale_x, offset_x, scale_y, offset_y):
+
+        max_h = 0.9
+        for i, node in enumerate(self._buffer):
+            rgb = hsv_to_rgb(max_h*i/(len(self._buffer)),1,1)
+            rgb = tuple([255*x for x in rgb])
+            pygame.draw.circle(screen, rgb, (node.x * scale_x 
+                               + offset_x, node.y * scale_y + offset_y), 2)
 
 
     def pop(self):
