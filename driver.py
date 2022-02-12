@@ -91,6 +91,7 @@ def main():
     background.render(screen)
     player = Car((WIDTH/2, HEIGHT/2))
     trajectory = Trajectory(300, 0.1)
+    mini_map = gui.MiniMap(tuple(x/SCALE for x in background.shape[::-1]), 0.5)
 
     drive_program_selector = pygame_gui.elements.UISelectionList(relative_rect=pygame.Rect(
         (10, HEIGHT - 100), (30, 86)), item_list=["P", "R", "N", "D"], manager=manager)
@@ -131,6 +132,7 @@ def main():
             Node(player.vehicle.x, player.vehicle.y, player.vehicle.theta))
         background.set_offset(
             (-player.vehicle.x * SCALE, -player.vehicle.y * SCALE))
+        mini_map.update((player.vehicle.x, player.vehicle.y))
         background.render(screen)
 
         vehicle_speed_label.set_text(
@@ -142,8 +144,9 @@ def main():
         vehicle_steering_progress_bar.set_value(player.wheel_angle_deg)
 
         trajectory.draw(screen, SCALE, -player.vehicle.x * SCALE + WIDTH/2, SCALE, -player.vehicle.y * SCALE + HEIGHT/2)
-
+        screen.blit(mini_map.image, mini_map.rect)
         screen.blit(player.image, player.rect)
+
         pygame.draw.circle(screen, (0, 100, 255), player.rect.center, 3)
         pygame.draw.circle(screen, (0, 255, 255), player.axis_center, 1)
 
